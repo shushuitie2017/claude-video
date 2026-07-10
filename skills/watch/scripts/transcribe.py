@@ -10,6 +10,14 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 管道默认 GBK，与 CJK 转录输出互啃 —— 统一强制 UTF-8
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (OSError, ValueError):
+            pass
+
 
 TS_RE = re.compile(
     r"(\d{2}):(\d{2}):(\d{2})[.,](\d{3})\s+-->\s+(\d{2}):(\d{2}):(\d{2})[.,](\d{3})"

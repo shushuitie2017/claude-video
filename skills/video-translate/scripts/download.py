@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -27,9 +28,21 @@ from config import require_binary  # noqa: E402
 
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".flv", ".wmv"}
 
-# 字幕语言优先级（yt-dlp --sub-langs 语法）。中英双收：原文是英文时拿英文字幕，
-# B 站等中文源拿中文字幕。
-DEFAULT_SUB_LANGS = "en.*,zh.*,zh-Hans,zh-CN"
+# 字幕语言优先级（yt-dlp --sub-langs 语法）。中英日三收：原文是英文拿英文，
+# B 站等中文源拿中文，日语视频拿原生日语（只收 en/zh 会漏掉日语视频的原生
+# 字幕、只拿到自动翻译轨——实测踩坑）。
+DEFAULT_SUB_LANGS = "en.*,zh.*,zh-Hans,zh-CN,ja,ja.*"
+
+
+def _ffmpeg_location_args() -> list[str]:
+    """yt-dlp 需要 ffmpeg 合并音视频轨。ffmpeg 不在 PATH（如 WinGet 安装）时
+    必须显式传 --ffmpeg-location，否则拿到的是未合并的纯视频轨（无音轨 →
+    下游转录被跳过——实测踩坑）。"""
+    from config import find_binary
+    ffmpeg = find_binary("ffmpeg")
+    if ffmpeg and shutil.which("ffmpeg") is None:
+        return ["--ffmpeg-location", str(Path(ffmpeg).parent)]
+    return []
 
 
 def is_url(source: str) -> bool:
@@ -57,16 +70,24 @@ def resolve_local(path: str) -> dict:
 
 
 def _pick_subtitle(out_dir: Path, langs: str = DEFAULT_SUB_LANGS) -> Path | None:
-    """在下载目录里挑最优字幕：按 langs 的语言顺序优先，否则取第一个。"""
+    """在下载目录里挑最优字幕。
+
+    原生语言轨（yt-dlp 标 `-orig`）优先于自动翻译轨——日语视频的 ja-orig
+    比机翻 zh-Hant 准得多，Claude 本来就能读原文（实测踩坑）。同级内按
+    langs 的语言顺序，最后兜底取第一个。
+    """
     candidates = sorted(out_dir.glob("video*.vtt"))
     if not candidates:
         return None
-    for lang in (token.strip().rstrip(".*") for token in langs.split(",")):
-        if not lang:
-            continue
-        preferred = [c for c in candidates if f".{lang}" in c.name]
-        if preferred:
-            return preferred[0]
+    lang_order = [token.strip().rstrip(".*") for token in langs.split(",") if token.strip()]
+    for pool in (
+        [c for c in candidates if "-orig" in c.name],
+        candidates,
+    ):
+        for lang in lang_order:
+            preferred = [c for c in pool if f".{lang}" in c.name]
+            if preferred:
+                return preferred[0]
     return candidates[0]
 
 
@@ -116,6 +137,7 @@ def fetch_captions(
     output_template = str(out_dir / "video.%(ext)s")
     cmd = [
         ytdlp,
+        *_ffmpeg_location_args(),
         "--skip-download",
         "--write-info-json",
         "--write-subs",
@@ -179,6 +201,7 @@ def download_url(
     fmt = "ba/bestaudio" if audio_only else "bv*[height<=720]+ba/b[height<=720]/bv+ba/b"
     cmd = [
         ytdlp,
+        *_ffmpeg_location_args(),
         "-N", "8",
         "-f", fmt,
         "--merge-output-format", "mp4",

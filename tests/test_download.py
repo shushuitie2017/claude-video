@@ -48,8 +48,8 @@ def _assert_bounded_langs(langs: str) -> None:
     tokens = langs.split(",")
     assert "all" not in tokens, f"sub-langs must not request all languages, got {langs!r}"
     assert all(
-        t.startswith("en") or t.startswith("zh") for t in tokens
-    ), f"sub-langs must stay English/Chinese-bounded, got {langs!r}"
+        t.startswith(("en", "zh", "ja")) for t in tokens
+    ), f"sub-langs must stay English/Chinese/Japanese-bounded, got {langs!r}"
 
 
 def test_fetch_captions_requests_bounded_langs(monkeypatch, tmp_path):
@@ -93,6 +93,21 @@ def test_no_cookie_retry_when_first_attempt_succeeds(monkeypatch, tmp_path):
     (out_dir / "video.info.json").write_text("{}", encoding="utf-8")
     download.fetch_captions(URL, out_dir, browser="chrome")
     assert len(calls) == 1
+
+
+def test_pick_subtitle_prefers_original_track(tmp_path):
+    """原生语言轨（-orig）优先于自动翻译轨——日语视频选 ja-orig 而非机翻 zh。"""
+    for name in ("video.ja-orig.vtt", "video.ja.vtt", "video.zh-Hant.vtt"):
+        (tmp_path / name).write_text("WEBVTT\n", encoding="utf-8")
+    picked = download._pick_subtitle(tmp_path)
+    assert picked.name == "video.ja-orig.vtt"
+
+
+def test_pick_subtitle_lang_order_without_orig(tmp_path):
+    for name in ("video.zh-Hans.vtt", "video.en.vtt"):
+        (tmp_path / name).write_text("WEBVTT\n", encoding="utf-8")
+    picked = download._pick_subtitle(tmp_path)
+    assert picked.name == "video.en.vtt"
 
 
 def test_is_url_rejects_flags_and_paths():
