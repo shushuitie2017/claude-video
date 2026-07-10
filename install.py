@@ -47,11 +47,14 @@ def install() -> int:
         subprocess.run([sys.executable, str(sync)], capture_output=True)
 
     TARGET_ROOT.mkdir(parents=True, exist_ok=True)
+    # 备份放 skills 目录外——留在里面会被 harness 当成 skill 注册（.bak 冒牌货）
+    backup_root = Path.home() / ".claude" / "skills-backup"
     for skill in SKILLS:
         src = REPO_ROOT / "skills" / skill
         dst = TARGET_ROOT / skill
         if dst.exists():
-            backup = TARGET_ROOT / f"{skill}.bak"
+            backup_root.mkdir(parents=True, exist_ok=True)
+            backup = backup_root / skill
             if backup.exists():
                 shutil.rmtree(backup)
             dst.rename(backup)
