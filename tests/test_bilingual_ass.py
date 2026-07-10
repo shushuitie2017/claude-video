@@ -109,8 +109,14 @@ class TestDetectScript:
 
 
 class TestPlatformFonts:
-    def test_kana_font_follows_platform(self, monkeypatch):
-        items = parse_srt("1\n00:00:00,000 --> 00:00:01,000\n中文\nこんにちは\n")
+    def test_bilingual_chinese_first_line_wins(self, monkeypatch):
+        """双语（中上日下）必须按首行中文选字体——日文字体缺简体字形会出方块。"""
+        items = parse_srt("1\n00:00:00,000 --> 00:00:01,000\n中文在上\nこんにちは日本語\n")
+        monkeypatch.setattr(sys, "platform", "win32")
+        assert bilingual_ass.pick_font_for_items(items) == "Microsoft YaHei"
+
+    def test_pure_kana_first_line_follows_platform(self, monkeypatch):
+        items = parse_srt("1\n00:00:00,000 --> 00:00:01,000\nこんにちは\n")
         monkeypatch.setattr(sys, "platform", "win32")
         assert bilingual_ass.pick_font_for_items(items) == "Yu Gothic"
         monkeypatch.setattr(sys, "platform", "darwin")

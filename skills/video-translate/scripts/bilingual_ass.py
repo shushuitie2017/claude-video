@@ -134,10 +134,17 @@ def _detect_script(text):
 
 
 def pick_font_for_items(items, default=None):
-    """扫描全部字幕文本，按主导文字脚本自动选字体；中文 / 拉丁回落平台默认中文字体。"""
+    """按**首行**的文字脚本自动选字体；中文 / 拉丁回落平台默认中文字体。
+
+    只看首行是关键：双语格式固定中文在上、原文在下——若扫全部文本，
+    日文原文行的假名会把整体判成 kana 而选中 Yu Gothic 等日文字体，
+    而日文字体缺简体字形（们/这/说 不在 JIS 字集）→ 中文行出方块
+    （实测踩坑）。中文字体（雅黑/苹方）自带假名字形，第二行日文用它
+    渲染没问题；纯日文单语字幕首行即日文，照旧选日文字体。
+    """
     if default is None:
         default = subtitle_font_name()
-    text = "".join("".join(lines) for _, _, lines in items)
+    text = "".join(lines[0] for _, _, lines in items if lines)
     return script_font_table().get(_detect_script(text), default)
 
 
