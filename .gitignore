@@ -1,0 +1,19 @@
+# OS / editor / tooling
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.coverage
+htmlcov/
+.pytest_cache/
+.idea/
+.vscode/
+
+# local Claude Code settings
+.claude/settings.local.json
+
+# secrets — never commit
+.env
+*_config.json
+credentials.*
+cookies.txt

@@ -1,0 +1,10 @@
+{
+  "name": "video-skills",
+  "version": "1.0.0",
+  "description": "让 Claude 看视频、翻译视频的双技能套件：/watch 抽帧+转录回答视频问题；/video-translate 把外语视频变成带中文字幕的视频+中文文稿。",
+  "author": {
+    "name": "shushuitie2017"
+  },
+  "license": "MIT",
+  "keywords": ["video", "watch", "translate", "subtitles", "youtube", "bilibili", "whisper", "yt-dlp", "ffmpeg", "multimodal", "chinese"]
+}

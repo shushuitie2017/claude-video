@@ -1,0 +1,20 @@
+{
+  "name": "video-skills",
+  "metadata": {
+    "description": "让 Claude 看视频、翻译视频。/watch 回答视频问题；/video-translate 产出中文字幕视频+文稿。"
+  },
+  "owner": {
+    "name": "shushuitie2017"
+  },
+  "plugins": [
+    {
+      "name": "video-skills",
+      "description": "看视频（抽帧+转录回答问题）与翻译视频（转写+翻译+烧录中文字幕+出文稿）双技能。",
+      "author": {
+        "name": "shushuitie2017"
+      },
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
